@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoValue AI - Used Car Price Predictor</title>
+  <meta name="description" content="Get instant estimated used car resale values using vehicle parameters and simulated machine learning models." />
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+  
+  <!-- Pyodide CDN for In-Browser Python 3.12 ML Engine -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+
+  <!-- Chart.js CDN for Model Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- html2pdf.js CDN for Formatted PDF Report Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- Sticky Header Navigation -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="#" class="logo">
+        <div class="logo-icon">🚗</div>
+        <div class="logo-text">AutoValue <span>AI</span></div>
+      </a>
+
+      <nav class="nav-desktop">
+        <a href="#predict" class="nav-link">Predict Price</a>
+        <a href="#comparison" class="nav-link">Saved Comparisons</a>
+        <a href="#dataset" class="nav-link">Dataset Explorer</a>
+        <a href="#model" class="nav-link">Model Performance</a>
+        <a href="#python-lab" class="nav-link"><span class="python-badge-pill">🐍 Python ML Lab</span></a>
+        <a href="#about" class="nav-link">About Project</a>
+      </nav>
+
+      <div class="header-controls">
+        <div id="pythonHeaderStatus" class="python-status-chip" title="Python 3.12 WebAssembly Engine">
+          <span class="python-dot"></span>
+          <span class="python-status-text">Python 3.12 Engine</span>
+        </div>
+
+        <button id="themeToggleBtn" class="btn-theme" type="button" aria-label="Toggle Theme">
+          <span id="themeIcon">🌙</span>
+          <span id="themeText">Dark Mode</span>
+        </button>
+
+        <button id="navToggle" class="nav-toggle" type="button" aria-label="Toggle Mobile Navigation">
+          ☰
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Nav -->
+    <div id="mobileNav" class="mobile-nav hidden">
+      <a href="#predict" class="nav-link">Predict Price</a>
+      <a href="#comparison" class="nav-link">Saved Comparisons</a>
+      <a href="#dataset" class="nav-link">Dataset Explorer</a>
+      <a href="#model" class="nav-link">Model Performance</a>
+      <a href="#python-lab" class="nav-link">🐍 Python ML Lab</a>
+      <a href="#about" class="nav-link">About Project</a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="hero-bg-car"></div>
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="badge badge-primary">
+          ⚡ Demo powered by mock data
+        </div>
+        <h1 class="hero-title">
+          Know Your Car's <span>True Resale Value</span>
+        </h1>
+        <p class="hero-subtitle">
+          Get a quick estimated resale price using vehicle details and simulated machine learning insights.
+        </p>
+        <div class="hero-buttons">
+          <a href="#predict" class="btn btn-primary">
+            🚀 Predict My Car's Value
+          </a>
+          <a href="#dataset" class="btn btn-secondary">
+            📊 Explore Dataset
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="car-graphic-container">
+          <div class="car-graphic-glow"></div>
+          <svg class="car-svg-visual" viewBox="0 0 500 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="220" width="460" height="8" rx="4" fill="var(--border-color)"/>
+            <path d="M70 190 C 70 140, 120 100, 180 90 L 260 50 C 290 40, 360 40, 400 80 L 440 120 C 460 140, 470 160, 470 190 Z" fill="url(#carGradient)" />
+            <path d="M190 92 L 260 55 C 285 46, 345 46, 380 82 L 400 110 L 190 110 Z" fill="var(--bg-color)" opacity="0.75" />
+            <circle cx="130" cy="190" r="38" fill="#1e293b" stroke="var(--accent-blue)" stroke-width="6"/>
+            <circle cx="130" cy="190" r="18" fill="var(--border-color)"/>
+            <circle cx="370" cy="190" r="38" fill="#1e293b" stroke="var(--accent-blue)" stroke-width="6"/>
+            <circle cx="370" cy="190" r="18" fill="var(--border-color)"/>
+            <path d="M430 145 H460 V160 H425 Z" fill="#f59e0b" />
+            <defs>
+              <linearGradient id="carGradient" x1="70" y1="50" x2="470" y2="190" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#3b82f6"/>
+                <stop offset="1" stop-color="#1d4ed8"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Prediction Form Section -->
+  <section id="predict" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Vehicle Resale Valuation</h2>
+        <p class="section-desc">Enter vehicle specifications below to compute an algorithmic market estimate.</p>
+      </div>
+
+      <div class="predictor-card">
+        <!-- Python Engine Selector Bar -->
+        <div class="engine-select-banner">
+          <div class="engine-select-left">
+            <span class="engine-select-label">Execution Engine:</span>
+            <div class="engine-toggle-group">
+              <label class="engine-option-label" id="engineOptPython">
+                <input type="radio" name="mlEngineType" value="python" checked id="engineRadioPython" />
+                <span class="engine-pill-btn active">
+                  <span class="engine-dot pulse-python"></span>
+                  <strong>🐍 Python 3.12 ML Engine</strong>
+                  <span class="engine-badge-tag">WASM / Scikit</span>
+                </span>
+              </label>
+              <label class="engine-option-label" id="engineOptJS">
+                <input type="radio" name="mlEngineType" value="js" id="engineRadioJS" />
+                <span class="engine-pill-btn">
+                  <span>⚡</span>
+                  <strong>Client JS Simulator</strong>
+                </span>
+              </label>
+            </div>
+          </div>
+          <div class="engine-status-pill" id="engineStatusIndicator">
+            <span class="status-icon-dot ready"></span>
+            <span id="engineStatusText">Pyodide WebAssembly Ready</span>
+          </div>
+        </div>
+
+        <form id="predictionForm" novalidate>
+          <div class="form-grid">
+            
+            <!-- Brand -->
+            <div class="form-group">
+              <label for="brandSelect" class="form-label">Brand <span class="required">*</span></label>
+              <select id="brandSelect" class="form-control" required>
+                <option value="">Select Brand *</option>
+              </select>
+              <span id="brandSelectError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Model -->
+            <div class="form-group">
+              <label for="modelSelect" class="form-label">Model <span class="required">*</span></label>
+              <select id="modelSelect" class="form-control" disabled required>
+                <option value="">Select Model *</option>
+              </select>
+              <span id="modelSelectError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Year -->
+            <div class="form-group">
+              <label for="yearInput" class="form-label">Manufacturing Year <span class="required">*</span></label>
+              <input type="number" id="yearInput" class="form-control" placeholder="e.g. 2019" min="1980" max="2026" required />
+              <span id="yearInputError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Kilometres Driven -->
+            <div class="form-group">
+              <label for="kmInput" class="form-label">Kilometres Driven <span class="required">*</span></label>
+              <input type="number" id="kmInput" class="form-control" placeholder="e.g. 45000" min="0" required />
+              <span id="kmInputError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Fuel Type -->
+            <div class="form-group">
+              <label for="fuelSelect" class="form-label">Fuel Type <span class="required">*</span></label>
+              <select id="fuelSelect" class="form-control" required>
+                <option value="">Select Fuel Type *</option>
+              </select>
+              <span id="fuelSelectError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Transmission -->
+            <div class="form-group">
+              <label for="transmissionSelect" class="form-label">Transmission <span class="required">*</span></label>
+              <select id="transmissionSelect" class="form-control" required>
+                <option value="">Select Transmission *</option>
+              </select>
+              <span id="transmissionSelectError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Owner Count -->
+            <div class="form-group">
+              <label for="ownerInput" class="form-label">Previous Owners (Optional)</label>
+              <input type="number" id="ownerInput" class="form-control" placeholder="e.g. 1" min="0" max="10" />
+              <span id="ownerInputError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Seller Type -->
+            <div class="form-group">
+              <label for="sellerSelect" class="form-label">Seller Type (Optional)</label>
+              <select id="sellerSelect" class="form-control">
+                <option value="Individual">Individual</option>
+                <option value="Dealer">Dealer</option>
+                <option value="Trustmark Dealer">Trustmark Dealer</option>
+              </select>
+            </div>
+
+            <!-- Engine Capacity -->
+            <div class="form-group">
+              <label for="engineInput" class="form-label">Engine Capacity CC (Optional)</label>
+              <input type="number" id="engineInput" class="form-control" placeholder="e.g. 1197" min="1" />
+              <span id="engineInputError" class="error-message hidden"></span>
+            </div>
+
+            <!-- Mileage -->
+            <div class="form-group">
+              <label for="mileageInput" class="form-label">Mileage km/l (Optional)</label>
+              <input type="number" step="0.1" id="mileageInput" class="form-control" placeholder="e.g. 20.4" min="0.1" />
+              <span id="mileageInputError" class="error-message hidden"></span>
+            </div>
+
+            <!-- City -->
+            <div class="form-group">
+              <label for="citySelect" class="form-label">City Location (Optional)</label>
+              <select id="citySelect" class="form-control">
+                <option value="">Select City</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="resetFormBtn" class="btn btn-secondary">
+              🔄 Reset Form
+            </button>
+            <button type="submit" class="btn btn-primary">
+              ⚡ Calculate Price Estimate
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Result Container Card -->
+      <div id="predictionResultCard" class="result-card hidden"></div>
+
+      <!-- Similar Cars Comparison Container -->
+      <div id="similarCarsSection" class="similar-section hidden">
+        <div id="similarCarsContainer"></div>
+      </div>
+
+      <!-- Saved Comparisons & Scenario Matrix Section -->
+      <div id="comparison" class="comparison-section">
+        <div class="section-header">
+          <h2 class="section-title">Saved Car Valuations & Scenario Matrix</h2>
+          <p class="section-desc">Save predictions to compare different car scenarios side-by-side, highlighting price deltas and confidence levels.</p>
+        </div>
+        <div id="comparisonContainer"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dataset Explorer Section -->
+  <section id="dataset" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Dataset Explorer</h2>
+        <p class="section-desc">Search, filter, and inspect mock used car records powering our simulator.</p>
+      </div>
+
+      <!-- Summary Metrics Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card" data-tooltip="Total verified vehicle sales transactions in the active dataset sample.">
+          <div class="metric-title">
+            <span>Total Records</span>
+            <span class="info-icon" title="Total sample count in dataset">ℹ️</span>
+          </div>
+          <div id="summaryTotalRecords" class="metric-value">0</div>
+          <span class="metric-subtext">Verified vehicle records</span>
+        </div>
+        <div class="metric-card" data-tooltip="Arithmetic mean resale price across all vehicle segments and conditions.">
+          <div class="metric-title">
+            <span>Average Resale Price</span>
+            <span class="info-icon" title="Mean selling price">ℹ️</span>
+          </div>
+          <div id="summaryAvgPrice" class="metric-value">₹0</div>
+          <span class="metric-subtext">Mean transaction value</span>
+        </div>
+        <div class="metric-card" data-tooltip="Minimum entry-level budget vehicle price in our current database.">
+          <div class="metric-title">
+            <span>Lowest Price</span>
+            <span class="info-icon" title="Minimum price point">ℹ️</span>
+          </div>
+          <div id="summaryMinPrice" class="metric-value">₹0</div>
+          <span class="metric-subtext">Entry market baseline</span>
+        </div>
+        <div class="metric-card" data-tooltip="Maximum premium / luxury vehicle price ceiling in the current database.">
+          <div class="metric-title">
+            <span>Highest Price</span>
+            <span class="info-icon" title="Peak valuation point">ℹ️</span>
+          </div>
+          <div id="summaryMaxPrice" class="metric-value">₹0</div>
+          <span class="metric-subtext">Top segment ceiling</span>
+        </div>
+        <div class="metric-card" data-tooltip="Number of distinct automotive manufacturers currently represented in the inventory.">
+          <div class="metric-title">
+            <span>Available Brands</span>
+            <span class="info-icon" title="Unique auto OEMs">ℹ️</span>
+          </div>
+          <div id="summaryBrandsCount" class="metric-value">0</div>
+          <span class="metric-subtext">Automotive manufacturers</span>
+        </div>
+        <div class="metric-card" data-tooltip="Supported fuel and powertrain types: Petrol, Diesel, CNG, Electric, and Hybrid.">
+          <div class="metric-title">
+            <span>Fuel Variants</span>
+            <span class="info-icon" title="Powertrain types">ℹ️</span>
+          </div>
+          <div id="summaryFuelCount" class="metric-value">0</div>
+          <span class="metric-subtext">Powertrain categories</span>
+        </div>
+      </div>
+
+      <!-- Search and Filter Bar -->
+      <div class="filter-bar">
+        <input type="text" id="datasetSearch" class="form-control" placeholder="🔍 Search brand or model..." />
+        <select id="filterFuel" class="form-control"><option value="">All Fuels</option></select>
+        <select id="filterTransmission" class="form-control"><option value="">All Transmissions</option></select>
+        <select id="filterCity" class="form-control"><option value="">All Cities</option></select>
+        <select id="sortSelect" class="form-control">
+          <option value="price-desc">Price: High to Low</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="year-desc">Year: Newest First</option>
+          <option value="year-asc">Year: Oldest First</option>
+        </select>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Make & Model</th>
+              <th>Year</th>
+              <th>KM Driven</th>
+              <th>Fuel</th>
+              <th>Transmission</th>
+              <th>Owners</th>
+              <th>City</th>
+              <th>Resale Price</th>
+            </tr>
+          </thead>
+          <tbody id="datasetTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="text-center py-8">
+        <p id="datasetRecordCount" class="text-muted" style="margin-bottom: 0.8rem;"></p>
+        <button id="loadMoreBtn" class="btn btn-secondary" type="button">
+          Load More Records
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Model Performance Section -->
+  <section id="model" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Model Performance & Analytics</h2>
+        <p class="section-desc">Comparison of simulated regression algorithms evaluated on mock training datasets.</p>
+      </div>
+
+      <div class="performance-grid">
+        <div class="model-card active-model">
+          <div class="model-header">
+            <h3>Random Forest Regressor</h3>
+            <span class="badge badge-primary">Active Model</span>
+          </div>
+          <p class="text-muted">Ensemble tree algorithm matching multi-feature non-linear vehicle parameters.</p>
+          <div class="model-metrics-list">
+            <div class="metric-row tooltip-trigger" data-tooltip="Mean Absolute Error (MAE): The average absolute difference between predicted and actual selling prices. Lower is better.">
+              <span class="metric-label-with-icon">
+                Mean Absolute Error (MAE)
+                <span class="info-icon">ℹ️</span>
+              </span>
+              <strong class="text-accent">₹54,300</strong>
+            </div>
+            <div class="metric-row tooltip-trigger" data-tooltip="Root Mean Squared Error (RMSE): Standard deviation of residuals; penalizes larger price outliers more heavily. Lower is better.">
+              <span class="metric-label-with-icon">
+                Root Mean Squared Error (RMSE)
+                <span class="info-icon">ℹ️</span>
+              </span>
+              <strong class="text-accent">₹79,600</strong>
+            </div>
+            <div class="metric-row tooltip-trigger" data-tooltip="R² Variance Score (Coefficient of Determination): Percentage of resale price variance explained by vehicle features. 1.0 is a perfect fit.">
+              <span class="metric-label-with-icon">
+                R² Variance Score
+                <span class="info-icon">ℹ️</span>
+              </span>
+              <strong class="text-accent">0.89 (89%)</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="model-card">
+          <div class="model-header">
+            <h3>Linear Regression Baseline</h3>
+            <span class="badge badge-outline">Baseline Model</span>
+          </div>
+          <p class="text-muted">Standard parametric baseline predicting direct linear trendlines.</p>
+          <div class="model-metrics-list">
+            <div class="metric-row tooltip-trigger" data-tooltip="Mean Absolute Error (MAE): Baseline linear model has higher average estimation error compared to Random Forest.">
+              <span class="metric-label-with-icon">
+                Mean Absolute Error (MAE)
+                <span class="info-icon">ℹ️</span>
+              </span>
+              <strong>₹82,500</strong>
+            </div>
+            <div class="metric-row tooltip-trigger" data-tooltip="Root Mean Squared Error (RMSE): Standard deviation of residuals for the linear baseline.">
+              <span class="metric-label-with-icon">
+                Root Mean Squared Error (RMSE)
+                <span class="info-icon">ℹ️</span>
+              </span>
+              <strong>₹118,400</strong>
+            </div>
+            <div class="metric-row tooltip-trigger" data-tooltip="R² Variance Score: Explains 78% of valuation variance using single linear hyperplanes.">
+              <span class="metric-label-with-icon">
+                R² Variance Score
+                <span class="info-icon">ℹ️</span>
+              </span>
+              <strong>0.78 (78%)</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart 1: Model Comparison Bar Chart with Axis Tooltips -->
+      <div class="analytics-chart-box" style="margin-top: 2rem;">
+        <div class="chart-header-bar">
+          <div class="chart-title-group">
+            <span class="chart-tag">Model Benchmarks</span>
+            <h3 class="chart-title">Algorithm Error & Accuracy Comparison</h3>
+          </div>
+          <div class="chart-axis-guides">
+            <div class="axis-guide-pill" data-tooltip="X-Axis: Evaluated regression algorithms (Linear Regression vs. Random Forest Ensemble).">
+              <span class="axis-badge">X-Axis</span>
+              <span>Models Compared</span>
+              <span class="info-icon">ℹ️</span>
+            </div>
+            <div class="axis-guide-pill" data-tooltip="Y-Axis: Error magnitude in Indian Rupees (₹) for MAE/RMSE and Scaled Variance Score.">
+              <span class="axis-badge">Y-Axis</span>
+              <span>Error in ₹ / Variance</span>
+              <span class="info-icon">ℹ️</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="performanceChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Interactive Scatter Plot: Kilometres Driven vs Resale Price -->
+      <div class="analytics-chart-box scatter-analytics-box" style="margin-top: 2rem;">
+        <div class="chart-header-bar">
+          <div class="chart-title-group">
+            <div class="badge badge-python" style="margin-bottom: 0.35rem;">
+              <span>📈</span> Python Linear Regression (OLS)
+            </div>
+            <h3 class="chart-title">Interactive Scatter Plot: Kilometres Driven vs. Resale Price</h3>
+            <p class="chart-subtitle">Analyze empirical vehicle depreciation curves across real inventory records with trendline estimation.</p>
+          </div>
+
+          <div class="chart-axis-guides">
+            <div class="axis-guide-pill" data-tooltip="X-Axis: Kilometres Driven (Odometer mileage accumulated). Higher mileage represents engine wear and road usage.">
+              <span class="axis-badge">X-Axis</span>
+              <span>KM Driven (Odometer)</span>
+              <span class="info-icon">ℹ️</span>
+            </div>
+            <div class="axis-guide-pill" data-tooltip="Y-Axis: Resale Price in Indian Rupees (₹). Transaction selling price recorded for the vehicle.">
+              <span class="axis-badge">Y-Axis</span>
+              <span>Resale Price (₹)</span>
+              <span class="info-icon">ℹ️</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scatter Filter Toolbar -->
+        <div class="scatter-toolbar">
+          <div class="scatter-filters">
+            <span class="filter-label">Filter Powertrain:</span>
+            <div class="scatter-fuel-pills" id="scatterFuelFilters">
+              <button type="button" class="fuel-pill active" data-fuel="all">All Vehicles</button>
+              <button type="button" class="fuel-pill" data-fuel="Petrol">Petrol</button>
+              <button type="button" class="fuel-pill" data-fuel="Diesel">Diesel</button>
+              <button type="button" class="fuel-pill" data-fuel="CNG">CNG</button>
+              <button type="button" class="fuel-pill" data-fuel="Electric">Electric / Hybrid</button>
+            </div>
+          </div>
+
+          <div class="scatter-toggles">
+            <label class="toggle-control" data-tooltip="Toggle Ordinary Least Squares (OLS) linear trendline fitted via Python statistics.">
+              <input type="checkbox" id="toggleTrendline" checked />
+              <span class="toggle-label">Show Python OLS Trendline</span>
+            </label>
+            <button type="button" class="btn btn-sm btn-ghost" id="resetScatterZoomBtn" title="Reset view">
+              🔄 Reset Points
+            </button>
+          </div>
+        </div>
+
+        <!-- Python Computed Correlation Analytics Bar -->
+        <div class="correlation-stats-bar">
+          <div class="corr-stat-item" data-tooltip="Pearson Correlation Coefficient (r): Measures linear correlation strength (-1.0 to +1.0). Negative value indicates higher mileage causes lower price.">
+            <span class="corr-label">Pearson Correlation (r) <span class="info-icon">ℹ️</span></span>
+            <strong class="corr-value text-accent" id="scatterPearsonVal">-0.684</strong>
+            <span class="corr-subtext">Strong Negative Correlation</span>
+          </div>
+          <div class="corr-stat-item" data-tooltip="Rate of Depreciation: Average price loss per 10,000 kilometres driven computed via Python linear regression slope.">
+            <span class="corr-label">Depreciation Rate <span class="info-icon">ℹ️</span></span>
+            <strong class="corr-value" id="scatterSlopeVal">-₹52,400 / 10k km</strong>
+            <span class="corr-subtext">Calculated via OLS Slope</span>
+          </div>
+          <div class="corr-stat-item" data-tooltip="Goodness of fit (R²): Proportion of price variance directly explained by odometer mileage alone.">
+            <span class="corr-label">Mileage R² Fit <span class="info-icon">ℹ️</span></span>
+            <strong class="corr-value" id="scatterR2Val">0.468 (46.8%)</strong>
+            <span class="corr-subtext">Single-variable variance</span>
+          </div>
+          <div class="corr-stat-item" data-tooltip="Active dataset count currently rendered on the interactive scatter canvas.">
+            <span class="corr-label">Plotted Points <span class="info-icon">ℹ️</span></span>
+            <strong class="corr-value" id="scatterCountVal">42 Cars</strong>
+            <span class="corr-subtext">Sample subset</span>
+          </div>
+        </div>
+
+        <!-- Scatter Plot Canvas -->
+        <div class="chart-wrapper scatter-canvas-wrapper">
+          <canvas id="scatterCorrelationChart"></canvas>
+        </div>
+
+        <div class="scatter-insight-footer">
+          <span class="insight-icon">💡</span>
+          <span class="insight-text">
+            <strong>Statistical Insight:</strong> Every 10,000 km of odometer usage introduces an average empirical resale depreciation of <strong>₹48,000 – ₹55,000</strong>. Diesel and SUV segments retain relatively higher equity at higher mileages compared to entry-level petrol hatchbacks.
+          </span>
+        </div>
+      </div>
+
+      <div class="result-disclaimer" style="margin-top: 1.5rem; text-align: center;">
+        ℹ️ <strong>Notice:</strong> These metrics and linear regression slopes are computed directly via our Python 3.12 statistics pipeline in WebAssembly.
+      </div>
+    </div>
+  </section>
+
+  <!-- Python ML Studio & Interactive Lab Section -->
+  <section id="python-lab" class="section section-python-lab">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-python mb-2">🐍 Python 3.12 WebAssembly Playground</div>
+        <h2 class="section-title">Python Machine Learning Studio</h2>
+        <p class="section-desc">Execute real Python scripts in your browser using Pyodide WebAssembly. Train regression models, compute feature importances, and run live car price inferences.</p>
+      </div>
+
+      <div class="python-studio-card">
+        <!-- Studio Top Toolbar -->
+        <div class="python-toolbar">
+          <div class="python-tabs" id="pythonScriptTabs">
+            <button type="button" class="python-tab-btn active" data-script="train">
+              <span>🌲</span> train_model.py
+            </button>
+            <button type="button" class="python-tab-btn" data-script="predict">
+              <span>🎯</span> predict.py
+            </button>
+            <button type="button" class="python-tab-btn" data-script="scatter">
+              <span>📈</span> correlation_scatter.py
+            </button>
+            <button type="button" class="python-tab-btn" data-script="report">
+              <span>📄</span> export_report.py
+            </button>
+            <button type="button" class="python-tab-btn" data-script="eda">
+              <span>📊</span> eda_analysis.py
+            </button>
+            <button type="button" class="python-tab-btn" data-script="custom">
+              <span>✍️</span> custom_script.py
+            </button>
+          </div>
+
+          <div class="python-toolbar-actions">
+            <button type="button" id="resetPythonCodeBtn" class="btn btn-sm btn-outline-python" title="Reset to original code">
+              🔄 Reset
+            </button>
+            <button type="button" id="copyPythonCodeBtn" class="btn btn-sm btn-outline-python" title="Copy code to clipboard">
+              📋 Copy
+            </button>
+            <button type="button" id="downloadPyFileBtn" class="btn btn-sm btn-outline-python" title="Download .py file">
+              📥 Download .py
+            </button>
+            <button type="button" id="runPythonScriptBtn" class="btn btn-sm btn-python-primary">
+              <span id="runPythonIcon">▶️</span>
+              <span id="runPythonText">Run in Python 3.12</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Studio Body Grid (Code Editor + Terminal) -->
+        <div class="python-studio-grid">
+          
+          <!-- Code Editor Pane -->
+          <div class="python-editor-wrapper">
+            <div class="python-pane-header">
+              <div class="pane-title">
+                <span class="file-icon">📄</span>
+                <span id="activePythonFileName">train_model.py</span>
+                <span class="file-tag">Python 3.12</span>
+              </div>
+              <span class="editor-tip">Editable — modify code and click Run</span>
+            </div>
+            
+            <div class="code-editor-container">
+              <div class="line-numbers" id="pythonLineNumbers"></div>
+              <textarea id="pythonCodeEditor" spellcheck="false" class="python-textarea"></textarea>
+            </div>
+          </div>
+
+          <!-- Python Terminal Output Pane -->
+          <div class="python-terminal-wrapper">
+            <div class="python-pane-header terminal-header">
+              <div class="terminal-traffic-lights">
+                <span class="traffic-dot red"></span>
+                <span class="traffic-dot yellow"></span>
+                <span class="traffic-dot green"></span>
+                <span class="terminal-title">python3 -m autovalue_ml (stdout)</span>
+              </div>
+              <div class="terminal-meta" id="terminalMetaBadge">
+                <span id="terminalTimeBadge" class="time-badge">Ready</span>
+              </div>
+            </div>
+
+            <div class="python-terminal-body" id="pythonTerminalOutput">
+              <div class="terminal-line terminal-dim">AutoValue Python ML Environment initialized.</div>
+              <div class="terminal-line terminal-dim">Pyodide 0.26.2 WebAssembly runtime loaded with full standard library.</div>
+              <div class="terminal-line terminal-accent">Click 'Run in Python 3.12' to execute current script...</div>
+            </div>
+
+            <!-- Feature Importance Widget from Python Output -->
+            <div class="python-feature-widget" id="pythonFeatureWidget">
+              <div class="widget-header">
+                <span>📊 Python Scikit Feature Importance Weights</span>
+                <span class="badge badge-sm badge-outline">Computed by ML Model</span>
+              </div>
+              <div class="feature-bars">
+                <div class="feature-bar-item">
+                  <div class="feature-label-row">
+                    <span>Manufacturing Year (Vehicle Age)</span>
+                    <strong>38.5%</strong>
+                  </div>
+                  <div class="feature-bar-track">
+                    <div class="feature-bar-fill" style="width: 38.5%; background: #3b82f6;"></div>
+                  </div>
+                </div>
+                <div class="feature-bar-item">
+                  <div class="feature-label-row">
+                    <span>Kilometres Driven (Odometer)</span>
+                    <strong>26.2%</strong>
+                  </div>
+                  <div class="feature-bar-track">
+                    <div class="feature-bar-fill" style="width: 26.2%; background: #06b6d4;"></div>
+                  </div>
+                </div>
+                <div class="feature-bar-item">
+                  <div class="feature-label-row">
+                    <span>Fuel Variant & Powertrain</span>
+                    <strong>17.8%</strong>
+                  </div>
+                  <div class="feature-bar-track">
+                    <div class="feature-bar-fill" style="width: 17.8%; background: #10b981;"></div>
+                  </div>
+                </div>
+                <div class="feature-bar-item">
+                  <div class="feature-label-row">
+                    <span>Transmission (Manual vs Auto)</span>
+                    <strong>11.4%</strong>
+                  </div>
+                  <div class="feature-bar-track">
+                    <div class="feature-bar-fill" style="width: 11.4%; background: #8b5cf6;"></div>
+                  </div>
+                </div>
+                <div class="feature-bar-item">
+                  <div class="feature-label-row">
+                    <span>Engine Capacity (CC) & Owners</span>
+                    <strong>6.1%</strong>
+                  </div>
+                  <div class="feature-bar-track">
+                    <div class="feature-bar-fill" style="width: 6.1%; background: #f59e0b;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Project Section -->
+  <section id="about" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">About AutoValue AI & Python ML</h2>
+        <p class="section-desc">Understanding valuation drivers and end-to-end Python machine learning architecture.</p>
+      </div>
+
+      <div class="about-grid">
+        <div class="about-card">
+          <h3>Why Vehicle Parameters Matter</h3>
+          <ul>
+            <li><strong>Brand & Model:</strong> Establishes market demand tier, spare availability, and brand resale hold rate.</li>
+            <li><strong>Age & Depreciation:</strong> Vehicle values drop steepest in years 1–3, stabilizing after year 5.</li>
+            <li><strong>Kilometres Driven:</strong> Direct reflection of mechanical wear on engine, gearbox, and suspension.</li>
+            <li><strong>Fuel Type & Transmission:</strong> Automatics and high-efficiency fuels command premium pricing in urban markets.</li>
+          </ul>
+        </div>
+
+        <div class="about-card">
+          <h3>Python ML Architecture (FastAPI & Pyodide)</h3>
+          <p class="text-muted">AutoValue AI leverages Python 3.12 WebAssembly (Pyodide) for real-time in-browser machine learning and supports direct deployment to high-performance Python FastAPI microservices.</p>
+          <div class="code-snippet">
+# Production Python FastAPI Server Snippet
+from fastapi import FastAPI
+from pydantic import BaseModel
+import joblib
+
+app = FastAPI(title="AutoValue ML Engine")
+model = joblib.load("random_forest_regressor.pkl")
+
+class CarFeatures(BaseModel):
+    brand: str
+    year: int
+    km_driven: int
+    fuel_type: str
+    transmission: str
+
+@app.post("/api/predict")
+def predict_price(car: CarFeatures):
+    X = preprocess_pipeline(car)
+    pred = model.predict([X])[0]
+    return {"predicted_price": round(pred, -2), "confidence": 92.4}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loading Animation Overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p>Calculating algorithmic valuation based on mock dataset...</p>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>🚗 <strong>AutoValue AI</strong> — Used Car Price Predictor Demo</p>
+      <p style="font-size: 0.8rem; margin-top: 0.4rem; color: var(--text-muted);">Built with Vanilla HTML, CSS & JavaScript. Configured for direct Vercel static deployment.</p>
+    </div>
+  </footer>
+
+  <!-- App Data & Scripts -->
+  <script src="./mock-data.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>
